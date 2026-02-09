@@ -1,0 +1,37 @@
+# stage2_sep_fdm.yaml
+device: "cuda"
+epochs: 1
+batch_size: 2
+lr: 1.0e-4
+save_interval: 2500
+save_path: "./darcy_redo_output/sCM/consistency-fdm-sep-nomask-uniform"
+seed: 444
+
+amp: false
+ema: false
+use_sep_net: true     # use sep net + u-channel CT
+
+pretrained_path: "./darcy_redo_output/sCM/consistency/model_epoch/model_epoch_8.pth"
+
+distillation: false
+teacher_path: null
+teacher_ema: false
+
+propose_mean: -1.2
+propose_std: 1.2
+
+use_loss_weight: true
+automatic_init_loss_weight: false
+use_sep_optimizer: true
+
+physics_type: "fdm"   # FDM residual backend
+use_ct: true
+use_phy_rand: true    # rand-time physics
+use_phy_1step: false   # 1-step physics from t = pi/2
+use_phy_2step: true   # 2-step physics
+use_a_ste: false      # use discrete_a, not STE
+use_ct_t1: false
+mask_fdm: false       # do not mask FDM loss near interface
+t1_strategy: "uniform"  # options: "fixed", "uniform", "normal"
+t1_mean: 1.1          # The center point (previously hardcoded 1.1)
+t1_width: 0.2         # Half-width for uniform or std-dev for normal
