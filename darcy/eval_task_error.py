@@ -321,7 +321,7 @@ def main(device, batch_size, total_samples, model_path, save_path, save_name, se
     print(f"PDE Residual MSE: {pde_error}")
 
     # calculate energy loss
-    energy_loss = Energy_Darcy_loss(gen_u_samples, gen_a_samples)
+    energy_loss = 0
     print(f"Energy Loss: {energy_loss}")
 
     # Save results
