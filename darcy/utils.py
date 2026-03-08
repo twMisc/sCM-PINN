@@ -101,7 +101,7 @@ def plot_result(samples, output_dir, current_training_step):
 #     return dataloader
 
 def load_data(batch_size, return_dataset=False, rescale=True):
-    dataset_path = '../DiffusionPDE_data/training/helmholtz'
+    dataset_path = '../DiffusionPDE_data/training/darcy'
     file_list = os.listdir(dataset_path)
     a_list = []
     u_list = []
@@ -129,7 +129,7 @@ def load_data(batch_size, return_dataset=False, rescale=True):
 
 def load_test_data(batch_size, return_dataset=False, rescale=True):
     dataset_path = '../DiffusionPDE_data/testing'
-    file_name = 'helmholtz.mat'
+    file_name = 'darcy.mat'
     data = scipy.io.loadmat(os.path.join(dataset_path, file_name))
     a_GT = data['thresh_a_data']
     u_GT = data['thresh_p_data']
