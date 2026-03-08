@@ -19,8 +19,6 @@ from utils import (
     discrete_a,
     discrete_a_ste,
     FDM_Darcy_loss,
-    Energy_Darcy_loss,
-    DarcyEnergyLossFixedA,
 )
 from networks_util import (
     is_compiled,
@@ -38,9 +36,6 @@ torch.set_float32_matmul_precision("highest")
 MY_PATH_TO_STAGE_1 = "./darcy_redo_output/sCM/consistency/model_epoch/model_epoch_8.pth"
 
 
-# ---------------------------------------------------------------------
-# Helper: physics loss backend (FDM vs Ritz), with optional STE for a
-# ---------------------------------------------------------------------
 def compute_physics_loss(
     pred_x0: torch.Tensor,
     physics_type: str,
@@ -49,7 +44,7 @@ def compute_physics_loss(
 ):
     """
     pred_x0: (B, 2, H, W), in *scaled* space.
-    physics_type: "fdm" or "ritz"
+    physics_type: "fdm"
     """
     # Separate channels and scale back
     u_samples = scale_back_u(pred_x0[:, 1, :, :])
@@ -64,18 +59,6 @@ def compute_physics_loss(
         # Residual-based loss; we square and average later
         res = FDM_Darcy_loss(u_samples, a_samples_discrete, output_mask=False, use_mask=mask_fdm)
         loss = torch.square(res)
-    elif physics_type == "ritz":
-        # Energy_Darcy_loss is assumed to already average over batch;
-        # but we still treat it as a tensor and allow .mean() for uniformity.
-        loss = Energy_Darcy_loss(u_samples, a_samples_discrete)
-    elif physics_type == 'ritz_v2':
-        loss_fn = DarcyEnergyLossFixedA()
-        loss = loss_fn(u_samples, a_samples_discrete)
-    elif physics_type == "fdm+ritz_v2":
-        res = FDM_Darcy_loss(u_samples, a_samples_discrete, output_mask=False, use_mask=mask_fdm)
-        loss_fdm = torch.square(res).mean()
-        loss_ritz = DarcyEnergyLossFixedA()(u_samples, a_samples_discrete)
-        loss = loss_fdm + loss_ritz
     else:
         raise ValueError(f"Unknown physics_type: {physics_type}")
 
@@ -125,7 +108,7 @@ def train_loop(
     - sep vs non-sep network
     - CT loss (optionally only u-channel for sep net)
     - physics loss at random time / 1-step / 2-step
-    - physics backend: FDM residual vs Ritz energy
+    - physics backend: FDM residual
     - learnable balancing coefficients via LossWeightManager
     """
     if os.path.exists(output_path):
@@ -606,9 +589,9 @@ def train_loop(
 )
 @click.option(
     "--physics_type",
-    type=click.Choice(["fdm", "ritz"]),
+    type=click.Choice(["fdm"]),
     default="fdm",
-    help="Physics backend: FDM residual or Ritz energy.",
+    help="Physics backend: FDM residual.",
 )
 @click.option("--use_ct/--no-use_ct", default=True, help="Use CT loss.")
 @click.option(
@@ -825,7 +808,6 @@ def main(
     if use_loss_weight:
         if automatic_init_loss_weight:
             print("[WARN] Automatic init of loss weights not implemented; using defaults.")
-        # Different initial balancing for FDM vs Ritz
         if physics_type == "fdm":
             param_dict = {
                 "ct": 10.0,
@@ -834,7 +816,7 @@ def main(
                 "two_step": -10.0,
                 't1_ct': 10.0,
             }
-        else:  # physics_type == "ritz"
+        else:
             param_dict = {
                 "ct": 10.0,
                 "rand": -10.0,
